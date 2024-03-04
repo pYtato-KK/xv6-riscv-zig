@@ -5,6 +5,10 @@
 #include <fcntl.h>
 #include <assert.h>
 
+#define index(s,c) strchr((s),(c))
+#define bcopy(s,d,n) memcpy((d),(s),(n))
+#define bzero(s,n) memset((s),0,(n))
+
 #define stat xv6_stat  // avoid clash with host struct stat
 #include "kernel/types.h"
 #include "kernel/fs.h"
@@ -85,7 +89,11 @@ main(int argc, char *argv[])
   assert((BSIZE % sizeof(struct dinode)) == 0);
   assert((BSIZE % sizeof(struct dirent)) == 0);
 
+#ifdef O_BINARY
+  fsfd = open(argv[1], O_RDWR|O_CREAT|O_TRUNC|O_BINARY, 0666);
+#else
   fsfd = open(argv[1], O_RDWR|O_CREAT|O_TRUNC, 0666);
+#endif
   if(fsfd < 0)
     die(argv[1]);
 
@@ -128,16 +136,24 @@ main(int argc, char *argv[])
   iappend(rootino, &de, sizeof(de));
 
   for(i = 2; i < argc; i++){
-    // get rid of "user/"
+    // Get filename
     char *shortname;
-    if(strncmp(argv[i], "user/", 5) == 0)
-      shortname = argv[i] + 5;
-    else
-      shortname = argv[i];
-    
-    assert(index(shortname, '/') == 0);
+    char pd = '/';
+    if (argv[i][1] == ':') 
+      pd = '\\';
 
+    if (index(argv[i], pd) == 0)
+        shortname = argv[i];
+    else
+        shortname = strrchr(argv[i], pd) + 1;
+
+    assert(index(shortname, pd) == 0);
+
+#ifdef O_BINARY
+    if((fd = open(argv[i], O_BINARY)) < 0)
+#else
     if((fd = open(argv[i], 0)) < 0)
+#endif
       die(argv[i]);
 
     // Skip leading _ in name when writing to file system.

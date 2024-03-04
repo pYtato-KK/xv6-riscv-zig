@@ -8,6 +8,7 @@ SECTIONS
  
   .text : {
     *(.text .text.*)
+    . = ALIGN(0x1000);
   }
 
   .rodata : {

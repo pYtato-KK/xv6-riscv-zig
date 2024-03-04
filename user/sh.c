@@ -54,6 +54,13 @@ void panic(char*);
 struct cmd *parsecmd(char*);
 void runcmd(struct cmd*) __attribute__((noreturn));
 
+void write_exitcode(int exitcode) {
+  int fd;
+  if ((fd = open("exitcode", O_WRONLY|O_CREATE)) < 0)
+      return;
+  fprintf(fd, "%d\n", exitcode);
+}
+
 // Execute cmd.  Never returns.
 void
 runcmd(struct cmd *cmd)
@@ -167,7 +174,10 @@ main(void)
     }
     if(fork1() == 0)
       runcmd(parsecmd(buf));
-    wait(0);
+
+    int exitcode;
+    wait(&exitcode);
+    write_exitcode(exitcode);
   }
   exit(0);
 }
